@@ -1,12 +1,21 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Fields, Ident, ItemStruct, WhereClause};
+use syn::{Fields, Ident, ItemStruct, Lifetime, LifetimeDef, WhereClause};
 
 use crate::attribute_helpers::{contains_initialize_with, contains_skip};
 
 pub fn struct_de(input: &ItemStruct, cratename: Ident) -> syn::Result<TokenStream2> {
     let name = &input.ident;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let trait_lifetime = LifetimeDef::new(Lifetime::new("'de", input.struct_token.span));
+    let mut generics = input.generics.clone();
+    generics
+        .params
+        .insert(0, syn::GenericParam::Lifetime(trait_lifetime));
+    let (impl_generics, _, _) = generics.split_for_impl();
+
+    let (_, ty_generics, where_clause) = input.generics.split_for_impl();
+
     let mut where_clause = where_clause.map_or_else(
         || WhereClause {
             where_token: Default::default(),
@@ -28,7 +37,7 @@ pub fn struct_de(input: &ItemStruct, cratename: Ident) -> syn::Result<TokenStrea
                     let field_type = &field.ty;
                     where_clause.predicates.push(
                         syn::parse2(quote! {
-                            #field_type: #cratename::BorshDeserialize
+                            #field_type: #cratename::BorshDeserialize<'de>
                         })
                         .unwrap(),
                     );
@@ -61,10 +70,11 @@ pub fn struct_de(input: &ItemStruct, cratename: Ident) -> syn::Result<TokenStrea
             }
         }
     };
+
     if let Some(method_ident) = init_method {
         Ok(quote! {
-            impl #impl_generics #cratename::de::BorshDeserialize for #name #ty_generics #where_clause {
-                fn deserialize(buf: &mut &[u8]) -> ::core::result::Result<Self, #cratename::maybestd::io::Error> {
+            impl #impl_generics #cratename::de::BorshDeserialize<'de> for #name #ty_generics #where_clause {
+                fn deserialize(buf: &mut &'de [u8]) -> ::core::result::Result<Self, #cratename::maybestd::io::Error> {
                     let mut return_value = #return_value;
                     return_value.#method_ident();
                     Ok(return_value)
@@ -73,8 +83,8 @@ pub fn struct_de(input: &ItemStruct, cratename: Ident) -> syn::Result<TokenStrea
         })
     } else {
         Ok(quote! {
-            impl #impl_generics #cratename::de::BorshDeserialize for #name #ty_generics #where_clause {
-                fn deserialize(buf: &mut &[u8]) -> ::core::result::Result<Self, #cratename::maybestd::io::Error> {
+            impl #impl_generics #cratename::de::BorshDeserialize<'de> for #name #ty_generics #where_clause {
+                fn deserialize(buf: &mut &'de [u8]) -> ::core::result::Result<Self, #cratename::maybestd::io::Error> {
                     Ok(#return_value)
                 }
             }
