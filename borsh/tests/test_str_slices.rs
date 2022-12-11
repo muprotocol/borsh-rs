@@ -1,11 +1,13 @@
-use borsh::BorshDeserialize;
+use borsh::{BorshDeserialize, BorshSerialize};
 
 macro_rules! test_str {
     ($test_name: ident, $str: expr) => {
         #[test]
         fn $test_name() {
-            let s = $str;
-            let buf = s.as_bytes();
+            let mut buf = vec![];
+            $str.serialize(&mut buf)
+                .expect("failed to serialize a str slice");
+
             let actual_s = <&str>::try_from_slice(&buf).expect("failed to deserialize a str slice");
             assert_eq!(actual_s, $str);
         }
