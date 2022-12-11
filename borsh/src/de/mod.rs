@@ -20,6 +20,7 @@ use crate::maybestd::{
 #[cfg(feature = "rc")]
 use crate::maybestd::{rc::Rc, sync::Arc};
 
+pub mod borrowed;
 mod hint;
 
 const ERROR_NOT_ALL_BYTES_READ: &str = "Not all bytes read";
