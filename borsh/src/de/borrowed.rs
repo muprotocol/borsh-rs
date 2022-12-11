@@ -1,8 +1,5 @@
 use crate::{
-    maybestd::{
-        io::{Error, ErrorKind, Result},
-        vec::Vec,
-    },
+    maybestd::io::{Error, ErrorKind, Result},
     BorshDeserialize,
 };
 
@@ -22,21 +19,6 @@ pub trait BorshBorrowedDeserialize<'de>: Sized {
             return Err(Error::new(ErrorKind::InvalidData, ERROR_NOT_ALL_BYTES_READ));
         }
         Ok(result)
-    }
-
-    #[inline]
-    #[doc(hidden)]
-    fn vec_from_bytes(len: u32, buf: &mut &'de [u8]) -> Result<Option<Vec<Self>>> {
-        let _ = len;
-        let _ = buf;
-        Ok(None)
-    }
-
-    #[inline]
-    #[doc(hidden)]
-    fn array_from_bytes<const N: usize>(buf: &mut &'de [u8]) -> Result<Option<[Self; N]>> {
-        let _ = buf;
-        Ok(None)
     }
 }
 
